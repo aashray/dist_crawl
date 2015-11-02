@@ -3,8 +3,30 @@
 import thread
 import socket
 import httplib
-from urlparse import urlparse
+import urlparse
+import re
+import sys
+import urllib
+from bs4 import BeautifulSoup
+ 
+class MyOpener(urllib.FancyURLopener):
+    version = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
 
+def get_links(url):
+    myopener = MyOpener()
+    #page = urllib.urlopen(url)
+    page = myopener.open(url)
+ 
+    text = page.read()
+    page.close()
+ 
+    soup = BeautifulSoup(text)
+ 
+    for tag in soup.findAll('a', href=True):
+        tag['href'] = urlparse.urljoin(url, tag['href'])
+        print tag['href']
+# process(url)
+ 
 def get_security_properties(link):
 	httponly = False
 	securecookie = False
@@ -14,8 +36,9 @@ def get_security_properties(link):
 	redirect_max = 3
 
 	while (redirect_max):	
-		url_parsed = urlparse(link)
+		url_parsed = urlparse.urlparse(link)
 
+		
 		if url_parsed == None:
 			return []
 		#print url_parsed
@@ -46,7 +69,7 @@ def get_security_properties(link):
 	temp = resp.getheader("x-frame-options")
 	if temp:
 		xframe = True
-
+	# TODO (@anyone): check if per cookie or overall
 	cookieinfo = resp.getheader("set-cookie");
 	if cookieinfo and "HTTPOnly" in cookieinfo:
 		httponly = True
@@ -66,8 +89,9 @@ def read_links(client_socket):
 		print "got non int in read size"
 		return []
 	
+	links_str = ""
 	while read_size > 0:
-		links_str = client_socket.recv(read_size)
+		links_str = links_str + client_socket.recv(read_size)
 		read_size -= len(links_str)
 
 	links_lst = links_str.split("\n");
@@ -81,10 +105,12 @@ def thread_handler(client_socket):
 		if link == "":
 			continue
 		print get_security_properties(link)
+		print get_links(link) # print all links of page.
 	print "exiting thread"
 
 def setup_server_socket():
 	serversock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	serversock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	serversock.bind(("", 21413))
 	serversock.listen(10);
 	return serversock

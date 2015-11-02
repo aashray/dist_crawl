@@ -3,7 +3,7 @@ import socket
 def setup_connection_node(ip, port):
 	node_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
-		node_sock.settimeout(1);
+		node_sock.settimeout(1); # will block for _ no.of seconds to connect
 		node_sock.connect((ip, port));
 	except:
 		print "Couldn't connect to ", ip, ":", port
