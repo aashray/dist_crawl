@@ -1,0 +1,14 @@
+https://docs.python.org/2/howto/sockets.html
+https://docs.python.org/2/library/socket.html
+http://www.tutorialspoint.com/python/python_multithreading.htm
+https://www.facebook.com
+https://web.whatsapp.com
+http://www.python.org
+https://docs.python.org/2/howto/regex.html
+https://docs.python.org/2/library/json.html
+https://docs.python.org/2/contents.html
+http://securitee.org/teaching/cse509/
+http://www.stonybrook.edu/
+http://www.securitee.org/
+http://cslibrary.stanford.edu/
+http://stackoverflow.com/questions/4575167/android-how-to-copy-the-emulator-to-a-friend-for-testing
