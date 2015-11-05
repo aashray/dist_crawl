@@ -1,5 +1,33 @@
 import socket
+import sys
+import urllib
+import urlparse
+from bs4 import BeautifulSoup
+ 
+class MyOpener(urllib.FancyURLopener):
+    version = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
 
+#get the links/urls present in the page of the given url
+#Return value - a list containing the links/urls
+def get_links(url):
+	urls_list = []	
+	myopener = MyOpener()
+	#page = urllib.urlopen(url)
+	page = myopener.open(url)
+ 
+	text = page.read()
+	page.close()
+ 	
+	soup = BeautifulSoup(text, "html.parser")
+ 	for tag in soup.findAll('a', href=True):
+		tag['href'] = urlparse.urljoin(url, tag['href'])
+		#print tag['href']
+		if tag['href'] not in urls_list:
+			urls_list.append(tag['href'])
+	return urls_list
+
+#sets up connection with the given ip, port.
+#Return value - the socket for the connection
 def setup_connection_node(ip, port):
 	node_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
@@ -11,6 +39,9 @@ def setup_connection_node(ip, port):
 
 	return node_sock;
 
+#sends the links_lst on node_sock.
+#Concatenates the strings in the list using \n as the delimiter.
+#Return value - nothing
 def send_links(node_sock, links_lst):
 
 	links_str = '\n'.join(links_lst)
@@ -22,6 +53,12 @@ def send_links(node_sock, links_lst):
 
 	node_sock.send(links_str);
 	#print links_str, length
+
+#This is the function that needs to be called for a given input URL
+def start_processing(url):
+	urls_list = get_links(url)
+	print urls_list
+
 
 def read_nodes_info(conf_file_path):
 	fd = open(conf_file_path, "r");
@@ -38,19 +75,12 @@ def read_nodes_info(conf_file_path):
 			ips_and_ports.append(ip_port)
 	return ips_and_ports;
 
-def read_all_links(links_path):
-	
-	fd = open(links_path, "r");
-	if fd == None:
-		return []
-	all_links = fd.read().split("\n");
-	all_links.remove("");
-	return all_links
 
-def main():
-	ips_and_ports = read_nodes_info("./nodes.conf")
-	all_links = read_all_links("./links.txt");
-
+#Reads nodes information from nodes_conf_file_path and
+#sets up the sockets on the active nodes.
+#Return value - a list of active sockets created
+def setup_all_nodes(nodes_conf_file_path):
+	ips_and_ports = read_nodes_info(nodes_conf_file_path)
 	active_node_sockets = []
 
 	for each in ips_and_ports:
@@ -63,20 +93,17 @@ def main():
 
 	print "activ nodes :", len(active_node_sockets)
 	if len(active_node_sockets) == 0:
-		return
+		return []
 
-	print "total number of links:", len(all_links)
-
-	links_per_node = len(all_links)/len(active_node_sockets)
-	if (len(all_links) % len(active_node_sockets) != 0):
-		links_per_node += 1
+	return active_node_sockets
 	
-	print "links per node: atmost", links_per_node
-	start = 0;
-	for i in xrange(len(active_node_sockets)):
-		print "sent ", start, "to ", min(start + links_per_node, len(all_links)) - 1, "to", active_node_sockets[i].getpeername()
-		send_links(active_node_sockets[i], all_links[start: min(start + links_per_node, len(all_links))]);
-		start = start + links_per_node;
+#First thing that should run after master is started
+#No return value
+def init_master():
 
-main()
+	active_node_sockets = setup_all_nodes("./nodes.conf")
 
+init_master()
+
+print len(sys.argv)
+start_processing(sys.argv[1])
