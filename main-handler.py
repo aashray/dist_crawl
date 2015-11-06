@@ -7,8 +7,8 @@ from bs4 import BeautifulSoup
 class MyOpener(urllib.FancyURLopener):
     version = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
 
-#get the links/urls present in the page of the given url
-#Return value - a list containing the links/urls
+# Get the links/urls present in the page of the given url
+# Return value - a list containing the links/urls
 def get_links(url):
 	urls_list = []	
 	myopener = MyOpener()
@@ -26,8 +26,8 @@ def get_links(url):
 			urls_list.append(tag['href'])
 	return urls_list
 
-#sets up connection with the given ip, port.
-#Return value - the socket for the connection
+# Sets up connection with the given ip, port.
+# Return value - the socket for the connection
 def setup_connection_node(ip, port):
 	node_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
@@ -39,9 +39,9 @@ def setup_connection_node(ip, port):
 
 	return node_sock;
 
-#sends the links_lst on node_sock.
-#Concatenates the strings in the list using \n as the delimiter.
-#Return value - nothing
+# Sends the links_lst on node_sock.
+# Concatenates the strings in the list using \n as the delimiter.
+# Return value - None
 def send_links(node_sock, links_lst):
 
 	links_str = '\n'.join(links_lst)
@@ -54,12 +54,15 @@ def send_links(node_sock, links_lst):
 	node_sock.send(links_str);
 	#print links_str, length
 
-#This is the function that needs to be called for a given input URL
+# This is the function that needs to be called for a given input URL
+# Return value - None
 def start_processing(url):
 	urls_list = get_links(url)
 	print urls_list
 
-
+# Reads the config file path for slave nodes'
+# connection information.
+# Return value - list of ip:port for the slave nodes
 def read_nodes_info(conf_file_path):
 	fd = open(conf_file_path, "r");
 	if fd == None:
@@ -76,9 +79,9 @@ def read_nodes_info(conf_file_path):
 	return ips_and_ports;
 
 
-#Reads nodes information from nodes_conf_file_path and
-#sets up the sockets on the active nodes.
-#Return value - a list of active sockets created
+# Reads nodes information from nodes_conf_file_path and
+# sets up the sockets on the active nodes.
+# Return value - a list of active sockets created
 def setup_all_nodes(nodes_conf_file_path):
 	ips_and_ports = read_nodes_info(nodes_conf_file_path)
 	active_node_sockets = []
@@ -97,8 +100,8 @@ def setup_all_nodes(nodes_conf_file_path):
 
 	return active_node_sockets
 	
-#First thing that should run after master is started
-#No return value
+# First thing that should run after master is started
+# Return value - None
 def init_master():
 
 	active_node_sockets = setup_all_nodes("./nodes.conf")
