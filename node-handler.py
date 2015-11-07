@@ -10,6 +10,7 @@ import urllib
 from bs4 import BeautifulSoup
 import math
 from collections import Counter
+import pickle
  
 class MyOpener(urllib.FancyURLopener):
     version = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
@@ -123,7 +124,7 @@ def get_security_properties(link):
                 return []
         else:
             break;
-    print link, 	
+    #print link, 	
     temp = resp.getheader("strict-transport-security")
     if temp:
         sts = True
@@ -159,9 +160,19 @@ def read_links(client_socket):
 		links_str = links_str + client_socket.recv(read_size)
 		read_size -= len(links_str)
 
-	links_lst = links_str.split("\n");
+	#links_lst = links_str.split("\n");
+	links_lst = pickle.loads(links_str);
 
 	return links_lst;	
+
+#Sends a dictionary of results to master.
+#Key of the dictionary is the link
+#Value of the dictionary is the list of security properties
+def send_results_to_master(result):
+	#print result
+	pass
+
+
 
 # Handles the job of getting security properties in
 # the given link. Also finds all embedded urls in it.
@@ -169,13 +180,16 @@ def read_links(client_socket):
 # Return value - None
 def thread_handler(client_socket):
 	links_list = read_links(client_socket);
-
+	links_result={}
 	for link in links_list:
 		if link == "":
 			continue
-		print get_security_properties(link)
+		links_result[link]=get_security_properties(link)
+		print link, links_result[link]
 		#print get_links(link) # print all links of page.
 	print "processed ",len(links_list), " links"
+	pickle_result = pickle.dumps(links_result)
+	send_results_to_master(pickle_result)
 	print "exiting thread"
 
 # Setup server side socket functionality and listens

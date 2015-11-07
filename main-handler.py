@@ -2,6 +2,7 @@ import socket
 import sys
 import urllib
 import urlparse
+import pickle
 from bs4 import BeautifulSoup
  
 class MyOpener(urllib.FancyURLopener):
@@ -43,20 +44,21 @@ def setup_connection_node(ip, port):
 # Concatenates the strings in the list using \n as the delimiter.
 # Return value - None
 def send_links(active_sockets, links_lst):
-	print "links_str ",links_lst
+	#print "links_str ",links_lst
 	no_sockets = len(active_sockets)
 	no_links = int(len(links_lst)/no_sockets)
 	i=0
 	for node_sock in active_sockets:
 		end=(i+1)*no_links if i<no_sockets-1 else len(links_lst)
 		node_links = links_lst[i*no_links:end]
-		links_str = '\n'.join(node_links)
+		#links_str = '\n'.join(node_links)
+		links_str = pickle.dumps(node_links)
 		length = len(links_str)
 		length_str_10 = "0"*(10 - len(str(length))) + str(length)
 		node_sock.send(length_str_10);
 		node_sock.send(links_str);
 		i+=1
-		print links_str, length
+		#print links_str, length
 
 # This is the function that needs to be called for a given input URL
 # Return value - None
@@ -112,9 +114,9 @@ def init_master():
 
 def main():
 	active_node_sockets=init_master()
-	print len(sys.argv)
+	#print len(sys.argv)
 	links = start_processing(sys.argv[1])
-	print type(links)
+	#print type(links)
 	send_links(active_node_sockets, links)
 	return 0
 
