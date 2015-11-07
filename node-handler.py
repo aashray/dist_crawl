@@ -104,7 +104,13 @@ def get_security_properties(link):
 	
         if conn == None:
             return []
-        conn.request("GET", url_parsed.path)
+	
+    	# TODO (@anyone): Handle all corner cases for URL parsing
+	try:
+        	conn.request("GET", url_parsed.path)
+	except socket.gaierror:
+		print "Incorrectly parsed link"
+		return [False,False,False,False,False]
 
         resp = conn.getresponse()
 
@@ -168,7 +174,8 @@ def thread_handler(client_socket):
 		if link == "":
 			continue
 		print get_security_properties(link)
-		print get_links(link) # print all links of page.
+		#print get_links(link) # print all links of page.
+	print "processed ",len(links_list), " links"
 	print "exiting thread"
 
 # Setup server side socket functionality and listens
@@ -178,7 +185,10 @@ def thread_handler(client_socket):
 def setup_server_socket():
 	serversock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serversock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	serversock.bind(("", 21413))
+	if len(sys.argv)==1:
+		serversock.bind(("", 21413))
+	else:
+		serversock.bind(("",int(sys.argv[1])))
 	serversock.listen(10);
 	return serversock
 

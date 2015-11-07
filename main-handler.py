@@ -42,23 +42,27 @@ def setup_connection_node(ip, port):
 # Sends the links_lst on node_sock.
 # Concatenates the strings in the list using \n as the delimiter.
 # Return value - None
-def send_links(node_sock, links_lst):
-
-	links_str = '\n'.join(links_lst)
-	length = len(links_str);
-	
-	length_str_10 = "0"*(10 - len(str(length))) + str(length)
-
-	node_sock.send(length_str_10);
-
-	node_sock.send(links_str);
-	#print links_str, length
+def send_links(active_sockets, links_lst):
+	print "links_str ",links_lst
+	no_sockets = len(active_sockets)
+	no_links = int(len(links_lst)/no_sockets)
+	i=0
+	for node_sock in active_sockets:
+		end=(i+1)*no_links if i<no_sockets-1 else len(links_lst)
+		node_links = links_lst[i*no_links:end]
+		links_str = '\n'.join(node_links)
+		length = len(links_str)
+		length_str_10 = "0"*(10 - len(str(length))) + str(length)
+		node_sock.send(length_str_10);
+		node_sock.send(links_str);
+		i+=1
+		print links_str, length
 
 # This is the function that needs to be called for a given input URL
 # Return value - None
 def start_processing(url):
 	urls_list = get_links(url)
-	print urls_list
+	return urls_list
 
 # Reads the config file path for slave nodes'
 # connection information.
@@ -103,13 +107,15 @@ def setup_all_nodes(nodes_conf_file_path):
 # First thing that should run after master is started
 # Return value - None
 def init_master():
-
 	active_node_sockets = setup_all_nodes("./nodes.conf")
+	return active_node_sockets
 
 def main():
-	init_master()
+	active_node_sockets=init_master()
 	print len(sys.argv)
-	start_processing(sys.argv[1])
+	links = start_processing(sys.argv[1])
+	print type(links)
+	send_links(active_node_sockets, links)
 	return 0
 
 if __name__ == "__main__":
