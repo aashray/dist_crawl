@@ -182,9 +182,13 @@ def setup_server_socket():
 	serversock.listen(10);
 	return serversock
 
+def main():
+	srv_sock = setup_server_socket();
+	while True:
+		(client_socket, address) = srv_sock.accept()
+    		thread.start_new_thread(thread_handler, (client_socket, ))
+	return 0
 
-srv_sock = setup_server_socket();
+if __name__ == "__main__":
+    sys.exit(main())
 
-while True:
-	(client_socket, address) = srv_sock.accept()
-    thread.start_new_thread(thread_handler, (client_socket, ))

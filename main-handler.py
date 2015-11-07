@@ -106,7 +106,11 @@ def init_master():
 
 	active_node_sockets = setup_all_nodes("./nodes.conf")
 
-init_master()
+def main():
+	init_master()
+	print len(sys.argv)
+	start_processing(sys.argv[1])
+	return 0
 
-print len(sys.argv)
-start_processing(sys.argv[1])
+if __name__ == "__main__":
+    sys.exit(main())
