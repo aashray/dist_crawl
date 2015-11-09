@@ -282,13 +282,21 @@ def setup_server_socket():
 	serversock.listen(10);
 	return serversock
 
+
+#Main function
+#Return Value - int 
 def main():
-	srv_sock = setup_server_socket();
-	while True:
-		(client_socket, address) = srv_sock.accept()
-    		thread.start_new_thread(thread_handler, (client_socket, ))
-		
-	return 0
+	try:
+		srv_sock = setup_server_socket();
+		while True:
+			(client_socket, address) = srv_sock.accept()
+    			thread.start_new_thread(thread_handler, (client_socket, ))
+		return 0
+	except KeyboardInterrupt:
+        	return 0
+	except Exception, msg:
+		print msg
+		return -1
 
 if __name__ == "__main__":
     sys.exit(main())

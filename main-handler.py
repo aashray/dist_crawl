@@ -66,24 +66,31 @@ def send_links(active_sockets, links_lst):
 		node_sock.send(length_str_10);
 		node_sock.send(links_str);
 		i+=1
-		#print links_str, length
+
+
+#Create Server socket on port 22000 to listen to incoming communications
+#Return value - socket
+def get_server_socket():
+	port = 22000
+	server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	server_socket.setblocking(0)    
+	server_socket.bind(('localhost', port))
+    	server_socket.listen(10)
+	print "Server started on port ",port
+	return server_socket
+
+
 
 #Receive results from active nodes.
 #Sends back confirmation to the active nodes
 # TODO Availability (Actions to be taken if a node goes down)
+#Return Value - None
 def recv_results(global_no_active_nodes):
 		no_active_nodes = int(global_no_active_nodes)
 
 		input_sockets=[]
-
-		#Create Server socket on port 22000 to listen to uncoming communications
-		port = 22000
-		server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		server_socket.setblocking(0)    
-		server_socket.bind(('localhost', port))
-    		server_socket.listen(10)
+		server_socket = get_server_socket()
 		input_sockets.append(server_socket)
-		print "Server started on port ",port
 
 		while len(input_sockets)>0:
 			try:
@@ -94,8 +101,7 @@ def recv_results(global_no_active_nodes):
 					if s is server_socket:
 						connection, client_address = s.accept()
 						connection.setblocking(5)
-						read_s.append(connection)
-				
+						read_s.append(connection)				
 					else:
 						try:
 						    #Read data
@@ -115,14 +121,13 @@ def recv_results(global_no_active_nodes):
 						    s.close()
 						    read_s.remove(s)
 
+						finally:
+							if s in input_sockets:
+								read_s.remove(s)
+
 			except Exception, msg:
 				print "Error in select.select"
 				print msg
-
-
-			if s in input_sockets:
-				read_s.remove(s)
-
 
 			no_active_nodes-=1
 			if no_active_nodes==0:
@@ -134,7 +139,8 @@ def recv_results(global_no_active_nodes):
 				return
 
 #API based function to retrive global_map
-#TODO To add logic to convert global map to a format consistent with UI requirement	
+#TODO To add logic to convert global map to a format consistent with UI requirement
+#Return Value - global_map (Map)	
 def get_global_map():
 	return global_map;
 
@@ -194,7 +200,8 @@ def init_master():
 
 
 #Main function
-#A non zero return value indicates an unsuccessful run
+#A non zero return value indicates unsuccessful run
+#Return value - Int
 def main():
 	try:
 		active_node_sockets=init_master()
