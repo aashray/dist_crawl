@@ -165,12 +165,88 @@ def read_links(client_socket):
 
 	return links_lst;	
 
+
+
+#Reads the confirmation from server.
+#This fucntion is called after the results are sent to the server
+def confirm_read(client_socket):
+	client_socket.setblocking(1)
+
+	read_size = client_socket.recv(10);
+
+	try:
+		read_size = int(read_size)
+	except:
+		print "got non int in read size"
+		return []
+	
+	links_str = ""
+
+	while read_size > 0:
+		links_str = links_str + client_socket.recv(read_size)
+		read_size -= len(links_str)
+
+	if links_str=="yes":
+		return True
+	else:
+		return False	
+
+
+
+# Sets up connection with the given ip, port.
+# Return value - the socket for the connection
+def setup_connection_node(ip, port):
+        node_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+                node_sock.settimeout(1); # will block for _ no.of seconds to connect
+                node_sock.connect((ip, port));
+        except:
+                print "Couldn't connect to ", ip, ":", port
+                return None
+
+        return node_sock;
+
+
+# Reads the config file path for slave nodes'
+# connection information.
+# Return value - list of ip:port for the slave nodes
+def read_nodes_info(conf_file_path):
+	fd = open(conf_file_path, "r");
+	if fd == None:
+		return None
+
+	conf_file_content = fd.read()
+	nodes = conf_file_content.split("\n");
+
+	ip_port = nodes[0].split(":");
+	if (len(ip_port) == 2):
+		return ip_port
+	else:
+		raise
+
 #Sends a dictionary of results to master.
 #Key of the dictionary is the link
 #Value of the dictionary is the list of security properties
 def send_results_to_master(result):
-	#print result
-	pass
+	try:
+		#Read server ip and port
+		ip_port = read_nodes_info("./server.conf")
+		server_socket=setup_connection_node(ip_port[0],int(ip_port[1]))
+
+		#Send data to server
+		length = len(str(result))
+		length_str_10 = "0"*(10 - len(str(length))) + str(length)
+		server_socket.send(length_str_10);
+		server_socket.send(result);
+
+		#Confirm read
+		confirm_read(server_socket)
+		print "received confirmation"
+
+	except Exception, msg:
+		print "Error in send results to master"
+		print msg
+	
 
 
 
@@ -189,7 +265,7 @@ def thread_handler(client_socket):
 		#print get_links(link) # print all links of page.
 	print "processed ",len(links_list), " links"
 	pickle_result = pickle.dumps(links_result)
-	send_results_to_master(pickle_result)
+	send_results_to_master(str(pickle_result))
 	print "exiting thread"
 
 # Setup server side socket functionality and listens
@@ -211,6 +287,7 @@ def main():
 	while True:
 		(client_socket, address) = srv_sock.accept()
     		thread.start_new_thread(thread_handler, (client_socket, ))
+		
 	return 0
 
 if __name__ == "__main__":

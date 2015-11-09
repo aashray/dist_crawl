@@ -4,6 +4,14 @@ import urllib
 import urlparse
 import pickle
 from bs4 import BeautifulSoup
+import select 
+from threading import Thread
+
+
+#Stores the results of all links sent to active_nodes
+#This variable can be accessed by get_global_map()
+global_map={}
+
  
 class MyOpener(urllib.FancyURLopener):
     version = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
@@ -60,6 +68,77 @@ def send_links(active_sockets, links_lst):
 		i+=1
 		#print links_str, length
 
+#Receive results from active nodes.
+#Sends back confirmation to the active nodes
+# TODO Availability (Actions to be taken if a node goes down)
+def recv_results(global_no_active_nodes):
+		no_active_nodes = int(global_no_active_nodes)
+
+		input_sockets=[]
+
+		#Create Server socket on port 22000 to listen to uncoming communications
+		port = 22000
+		server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		server_socket.setblocking(0)    
+		server_socket.bind(('localhost', port))
+    		server_socket.listen(10)
+		input_sockets.append(server_socket)
+		print "Server started on port ",port
+
+		while len(input_sockets)>0:
+			try:
+				#Select statement
+				read_s,write_s,error_s=select.select(input_sockets,[],[])
+				
+				for s in read_s:
+					if s is server_socket:
+						connection, client_address = s.accept()
+						connection.setblocking(5)
+						read_s.append(connection)
+				
+					else:
+						try:
+						    #Read data
+						    read_size = s.recv(10)
+						    data = s.recv(int(read_size))
+						    
+						    #Append to global map
+					            local_map = pickle.loads(data)
+						    global_map.update(local_map)
+
+						    #Confirmation sent to active node.
+						    s.send("0000000003")
+						    s.send("yes");
+
+						except Exception, msg:
+						    print "READ ERROR", msg
+						    s.close()
+						    read_s.remove(s)
+
+			except Exception, msg:
+				print "Error in select.select"
+				print msg
+
+
+			if s in input_sockets:
+				read_s.remove(s)
+
+
+			no_active_nodes-=1
+			if no_active_nodes==0:
+				print "GLOBAL MAP"
+    				for k in global_map:
+					print k, global_map[k]
+				
+				server_socket.close()
+				return
+
+#API based function to retrive global_map
+#TODO To add logic to convert global map to a format consistent with UI requirement	
+def get_global_map():
+	return global_map;
+
+
 # This is the function that needs to be called for a given input URL
 # Return value - None
 def start_processing(url):
@@ -105,6 +184,7 @@ def setup_all_nodes(nodes_conf_file_path):
 		return []
 
 	return active_node_sockets
+
 	
 # First thing that should run after master is started
 # Return value - None
@@ -112,13 +192,22 @@ def init_master():
 	active_node_sockets = setup_all_nodes("./nodes.conf")
 	return active_node_sockets
 
+
+#Main function
+#A non zero return value indicates an unsuccessful run
 def main():
-	active_node_sockets=init_master()
-	#print len(sys.argv)
-	links = start_processing(sys.argv[1])
-	#print type(links)
-	send_links(active_node_sockets, links)
-	return 0
+	try:
+		active_node_sockets=init_master()
+		links = start_processing(sys.argv[1])
+		t = Thread(target=recv_results, args=(str(len(active_node_sockets)),))
+		t.start()
+		send_links(active_node_sockets, links)
+    		t.join()
+		return 0
+	except Exception, msg:
+		print msg
+		return -1
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+   sys.exit(main()) 
