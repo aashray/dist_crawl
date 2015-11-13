@@ -22,9 +22,10 @@ class MyOpener(urllib.FancyURLopener):
 # Get the links/urls present in the page of the given url
 # Return value - a list containing the links/urls
 def get_links(url):
-	urls_list = []	
+	urldfg = urlparse.urldefrag(url)
+	url = urldfg[0]
+	urls_list = []
 	myopener = MyOpener()
-	#page = urllib.urlopen(url)
 	page = myopener.open(url)
  
 	text = page.read()
@@ -33,9 +34,9 @@ def get_links(url):
 	soup = BeautifulSoup(text, "html.parser")
  	for tag in soup.findAll('a', href=True):
 		tag['href'] = urlparse.urljoin(url, tag['href'])
-		#print tag['href']
-		if tag['href'] not in urls_list:
-			urls_list.append(tag['href'])
+		new_url = urlparse.urldefrag(tag['href'])[0]
+		if new_url not in urls_list:
+			urls_list.append(new_url)
 	return urls_list
 
 # Sets up connection with the given ip, port.
