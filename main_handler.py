@@ -63,7 +63,6 @@ def send_links(active_sockets, links_lst):
 	i = 0
 	end = 0;
 	while end < len(links_lst) - 1:
-		print end, len(links_lst)
 		for node_sock in active_sockets:
 			end = min((i + 1) * no_links_per_node, len(links_lst) - 1)#if i < no_sockets -1 else len(links_lst) #DAFUQ does this mean? TODO
 			node_links = links_lst[i * no_links_per_node:end]
@@ -73,7 +72,6 @@ def send_links(active_sockets, links_lst):
 
 			length_str_10 = "0"*(10 - len(str(length))) + str(length)
 			start_index_str_10 = "0"*(10 - len(str(i * no_links_per_node))) + str(i * no_links_per_node)
-			print start_index_str_10, i
 			try:
 				node_sock.send(length_str_10);
 				node_sock.send(start_index_str_10);
@@ -110,7 +108,6 @@ def recv_data_from_nodes(dist_map):
 		total_to_be_read += len(index_lists)
 
 	while total_to_be_read:
-		print "looping here.."
 		readable, writable, exceptional = select.select(node_sockets, [], [], 30)
 		if len(readable) == 0 and len(writable) == 0 and len(exceptional) == 0:
 			print "timed out!"
@@ -174,7 +171,7 @@ def start_processing(url):
 		urls_list = get_links(url)
 	else:
 		urls_list = url
-	time.sleep(5);
+	#time.sleep(5); //For testing
 	print "links count =", len(urls_list)
 	distribution_map = send_links(global_node_sockets, urls_list)
 
