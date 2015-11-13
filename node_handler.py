@@ -146,26 +146,42 @@ def get_security_properties(link):
 #
 # Return value - list of links to be processed
 def read_links(client_socket):
+	ret_on_err = [[], -1]
 	client_socket.setblocking(1)
 
 	read_size = client_socket.recv(10);
+	if len(read_size) == 0:
+		print "connection closed at other end"
+		return ret_on_err;
+
 	try:
 		read_size = int(read_size)
 	except:
-		print "got non int in read size"
-		return []
-	
+		print "error: got non int in read size"
+		return ret_on_err;
+
+	start_index = client_socket.recv(10);
+	if len(start_index) == 0:
+		print "connection closed at other end"
+		return ret_on_err
+
+	try:
+		start_index = int(start_index)
+	except:
+		print "error: got non int start index"
+		return ret_on_err
+
 	links_str = ""
 	while read_size > 0:
-		links_str = links_str + client_socket.recv(read_size)
+		recvd_shit = client_socket.recv(read_size)
+		if len(recvd_shit) == 0:
+			print "connection closed at other end"
+			return ret_on_err
+		links_str = links_str + recvd_shit
 		read_size -= len(links_str)
 
-	#links_lst = links_str.split("\n");
 	links_lst = pickle.loads(links_str);
-
-	return links_lst;	
-
-
+	return [links_lst, start_index];
 
 #Reads the confirmation from server.
 #This fucntion is called after the results are sent to the server
@@ -247,26 +263,40 @@ def send_results_to_master(result):
 		print "Error in send results to master"
 		print msg
 	
+def send_results_to_master_kbandi(socket, result, start_index):
 
+	length = len(str(result))
+	length_str_10 = "0"*(10 - len(str(length))) + str(length)
+	start_index_str_10 = "0"*(10 - len(str(start_index))) + str(start_index)
 
+	try:
+		socket.send(length_str_10);
+		socket.send(start_index_str_10);
+		socket.send(result);
+	except Exception, msg:
+		print "Error in send results to master"
+		print msg
 
 # Handles the job of getting security properties in
 # the given link. Also finds all embedded urls in it.
 #
 # Return value - None
 def thread_handler(client_socket):
-	links_list = read_links(client_socket);
-	links_result={}
-	for link in links_list:
-		if link == "":
-			continue
-		links_result[link]=get_security_properties(link)
-		print link, links_result[link]
-		#print get_links(link) # print all links of page.
-	print "processed ",len(links_list), " links"
-	pickle_result = pickle.dumps(links_result)
-	send_results_to_master(str(pickle_result))
-	print "exiting thread"
+	while True:
+		[links_list, start_index] = read_links(client_socket);
+		if start_index == -1:
+			break;
+		links_result = {}
+		for link in links_list:
+			if link == "":
+				continue
+			links_result[link] = get_security_properties(link)
+			#print link, links_result[link]
+			#print get_links(link) # print all links of page.
+		print "processed ",len(links_list), " links"
+		pickle_result = pickle.dumps(links_result)
+		send_results_to_master_kbandi(client_socket, str(pickle_result), start_index)
+	print "exiting thread!"
 
 # Setup server side socket functionality and listens
 # for a connection.
