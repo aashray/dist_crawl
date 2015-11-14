@@ -240,30 +240,7 @@ def read_nodes_info(conf_file_path):
 	else:
 		raise
 
-#Sends a dictionary of results to master.
-#Key of the dictionary is the link
-#Value of the dictionary is the list of security properties
-def send_results_to_master(result):
-	try:
-		#Read server ip and port
-		ip_port = read_nodes_info("./server.conf")
-		server_socket=setup_connection_node(ip_port[0],int(ip_port[1]))
-
-		#Send data to server
-		length = len(str(result))
-		length_str_10 = "0"*(10 - len(str(length))) + str(length)
-		server_socket.send(length_str_10);
-		server_socket.send(result);
-
-		#Confirm read
-		confirm_read(server_socket)
-		print "received confirmation"
-
-	except Exception, msg:
-		print "Error in send results to master"
-		print msg
-	
-def send_results_to_master_kbandi(socket, result, start_index):
+def send_results_to_master(socket, result, start_index):
 
 	length = len(str(result))
 	length_str_10 = "0"*(10 - len(str(length))) + str(length)
@@ -283,10 +260,12 @@ def send_results_to_master_kbandi(socket, result, start_index):
 # Return value - None
 def thread_handler(client_socket):
 	while True:
+
 		[links_list, start_index] = read_links(client_socket);
 		if start_index == -1:
 			break;
 		links_result = {}
+		print 'Got a new request. Processing...'
 		for link in links_list:
 			if link == "":
 				continue
@@ -295,7 +274,7 @@ def thread_handler(client_socket):
 			#print get_links(link) # print all links of page.
 		print "processed ",len(links_list), " links"
 		pickle_result = pickle.dumps(links_result)
-		send_results_to_master_kbandi(client_socket, str(pickle_result), start_index)
+		send_results_to_master(client_socket, str(pickle_result), start_index)
 	print "exiting thread!"
 
 # Setup server side socket functionality and listens

@@ -7,15 +7,15 @@ import pickle
 from bs4 import BeautifulSoup
 import select 
 import time
-from threading import Thread
-
+#import logging
+#from mod_python import apache
 
 #Stores the results of all links sent to active_nodes
 #This variable can be accessed by get_global_map()
 global_map={}
 
 global_node_sockets = []
- 
+
 class MyOpener(urllib.FancyURLopener):
     version = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
 
@@ -58,6 +58,8 @@ def setup_connection_node(ip, port):
 def send_links(active_sockets, links_lst):
 	#print "links_str ",links_lst
 	no_sockets = len(active_sockets)
+	if no_sockets == 0:
+		return {}
 	print "no sockets", no_sockets;
 	no_links_per_node = int(len(links_lst)/no_sockets)
 	distribution_map = {}
@@ -88,18 +90,6 @@ def send_links(active_sockets, links_lst):
 			i += 1
 	return distribution_map
 
-#Create Server socket on port 22000 to listen to incoming communications
-#Return value - socket
-def get_server_socket():
-	port = 22000
-	server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	server_socket.setblocking(0)    
-	server_socket.bind(('localhost', port))
-    	server_socket.listen(10)
-	print "Server started on port ",port
-	return server_socket
-
-
 def recv_data_from_nodes(dist_map):
 	node_sockets = dist_map.keys()
 
@@ -107,12 +97,17 @@ def recv_data_from_nodes(dist_map):
 	for x in dist_map:
 		index_lists = dist_map[x]
 		total_to_be_read += len(index_lists)
-
+	store_total_to_be_read = total_to_be_read;
+	iterations = 0
 	while total_to_be_read:
-		readable, writable, exceptional = select.select(node_sockets, [], [], 30)
+		readable, writable, exceptional = select.select(node_sockets, [], [], 20)
 		if len(readable) == 0 and len(writable) == 0 and len(exceptional) == 0:
-			print "timed out!"
-			return
+			iterations += 1
+			if store_total_to_be_read > total_to_be_read or iterations >= 2:
+				print "timed out"
+				return []
+			else:
+				continue
 		for socket in readable:
 			recv_size = socket.recv(10)
 			if len(recv_size) == 0:
@@ -162,12 +157,13 @@ def recv_data_from_nodes(dist_map):
 def get_global_map():
 	return global_map;
 
-
 # This is the function that needs to be called for a given input URL
 # Return value - None
 def start_processing(url):
+	init_master()
+	remaining_links = []
 	global global_node_sockets
-
+	global global_map
 	if type(url) == str:
 		urls_list = get_links(url)
 	else:
@@ -179,8 +175,16 @@ def start_processing(url):
 	print distribution_map
 	recv_data_from_nodes(distribution_map);
 	print global_map
+	print len(global_map)
 	print distribution_map
-	return global_map
+	for each in distribution_map:
+		for indexes in distribution_map[each]:
+			remaining_links = remaining_links + urls_list[indexes[0]:indexes[1]]
+	print remaining_links
+	ret_map = copy.copy(global_map) 
+	global_map = {};
+	global_node_sockets = []
+	return [ret_map, remaining_links]
 
 # Reads the config file path for slave nodes'
 # connection information.
@@ -227,13 +231,12 @@ def setup_all_nodes(nodes_conf_file_path):
 # Return value - None
 def init_master():
 	global global_node_sockets
-	global_node_sockets = setup_all_nodes("./nodes.conf")
+	global_node_sockets = setup_all_nodes("/tmp/nodes.conf")
 
 #Main function
 #A non zero return value indicates unsuccessful run
 #Return value - Int
 def main():
-	init_master()
 	start_processing(sys.argv[1])
 	return 0
 
