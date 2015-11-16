@@ -28,8 +28,10 @@ def entropy(s):
 # Return value - True or False
 def get_nonce(link):
     myopener = MyOpener()
-    page = myopener.open(link)
- 
+    try:
+    	page = myopener.open(link)
+    except:
+	return False;
     text = page.read()
     page.close()
  
@@ -59,23 +61,6 @@ def get_nonce(link):
 
     return isNonce
 
-# Gets all the links embedded in the given link (url)
-#
-# Return value - A list of urls in the given link
-def get_links(link):
-    myopener = MyOpener()
-    #page = urllib.urlopen(url)
-    page = myopener.open(link)
- 
-    text = page.read()
-    page.close()
- 
-    soup = BeautifulSoup(text)
- 
-    for tag in soup.findAll('a', href=True):
-        tag['href'] = urlparse.urljoin(link, tag['href'])
-        print tag['href']
-
 # Finds out if a given link contains the following 5
 # security properties:
 # Http only     :
@@ -89,14 +74,16 @@ def get_security_properties(link):
     httponly = False
     securecookie = False
     sts = False
-    xframe = False
+    xframe = "Not Found"
+    csp = False
     redirect_max = 3
+    fail_result = [False, False, False, False, False, False]
 
     while (redirect_max):	
         url_parsed = urlparse.urlparse(link)
 
         if url_parsed == None:
-            return []
+		return fail_result;
         #print url_parsed
         if url_parsed.scheme == "https":
             conn = httplib.HTTPSConnection(url_parsed.netloc)
@@ -104,14 +91,14 @@ def get_security_properties(link):
             conn = httplib.HTTPConnection(url_parsed.netloc)
 	
         if conn == None:
-            return []
+		return fail_result
 	
     	# TODO (@anyone): Handle all corner cases for URL parsing
 	try:
         	conn.request("GET", url_parsed.path)
 	except socket.gaierror:
 		print "Incorrectly parsed link"
-		return [False,False,False,False,False]
+		return fail_result
 
         resp = conn.getresponse()
 
@@ -121,7 +108,7 @@ def get_security_properties(link):
                 redirect_max -= 1
             else:
                 print link, " not ok, status ", resp.status, 
-                return []
+                return fail_result
         else:
             break;
     #print link, 	
@@ -130,7 +117,12 @@ def get_security_properties(link):
         sts = True
     temp = resp.getheader("x-frame-options")
     if temp:
-        xframe = True
+        xframe = temp
+
+    temp = resp.getheader("content-security-policy")
+    if temp:
+        csp = True
+
     # TODO (@anyone): check if per cookie or overall
     cookieinfo = resp.getheader("set-cookie");
     if cookieinfo and "HTTPOnly" in cookieinfo:
@@ -140,7 +132,7 @@ def get_security_properties(link):
 
     nonce = get_nonce(link)
 
-    return [sts, xframe, httponly, securecookie, nonce]
+    return [sts, xframe, httponly, securecookie, csp, nonce]
 
 # Read the links from master to process
 #
@@ -266,12 +258,13 @@ def thread_handler(client_socket):
 			break;
 		links_result = {}
 		print 'Got a new request. Processing...'
-		for link in links_list:
+		for each in links_list:
+			link = each[0]
+			depth = each[1]
 			if link == "":
 				continue
-			links_result[link] = get_security_properties(link)
-			#print link, links_result[link]
-			#print get_links(link) # print all links of page.
+			if link not in links_result:
+				links_result[link] = get_security_properties(link) + [depth]
 		print "processed ",len(links_list), " links"
 		pickle_result = pickle.dumps(links_result)
 		send_results_to_master(client_socket, str(pickle_result), start_index)

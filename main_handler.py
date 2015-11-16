@@ -20,8 +20,8 @@ class MyOpener(urllib.FancyURLopener):
     version = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15'
 
 # Get the links/urls present in the page of the given url
-# Return value - a list containing the links/urls
-def get_links(url):
+# Return value - a list containing the links/urls along with depth. example, [[url1, 0]
+def get_links(url, depth, atmost_count):
 	urldfg = urlparse.urldefrag(url)
 	url = urldfg[0]
 	urls_list = []
@@ -30,13 +30,16 @@ def get_links(url):
  
 	text = page.read()
 	page.close()
- 	
+
 	soup = BeautifulSoup(text, "html.parser")
  	for tag in soup.findAll('a', href=True):
+		if atmost_count == 0:
+			break;
 		tag['href'] = urlparse.urljoin(url, tag['href'])
 		new_url = urlparse.urldefrag(tag['href'])[0]
 		if new_url not in urls_list:
-			urls_list.append(new_url)
+			urls_list.append([new_url, depth + 1])
+		atmost_count -= 1;
 	return urls_list
 
 # Sets up connection with the given ip, port.
@@ -52,7 +55,7 @@ def setup_connection_node(ip, port):
 
 	return node_sock;
 
-# Sends the links_lst on node_sock.
+# Sends the links_lst on node_sock. links_lst also has depth with each link. example [[url1, 1], [url2, 1]]
 # Concatenates the strings in the list using \n as the delimiter.
 # Return value - A map of socket to [[start, end]] list as to what was send to each of the nodes
 def send_links(active_sockets, links_lst):
@@ -90,7 +93,7 @@ def send_links(active_sockets, links_lst):
 			i += 1
 	return distribution_map
 
-def recv_data_from_nodes(dist_map):
+def recv_data_from_nodes(dist_map, count):
 	node_sockets = dist_map.keys()
 
 	total_to_be_read = 0
@@ -100,7 +103,7 @@ def recv_data_from_nodes(dist_map):
 	store_total_to_be_read = total_to_be_read;
 	iterations = 0
 	while total_to_be_read:
-		readable, writable, exceptional = select.select(node_sockets, [], [], 20)
+		readable, writable, exceptional = select.select(node_sockets, [], [], max(30, count/2))
 		if len(readable) == 0 and len(writable) == 0 and len(exceptional) == 0:
 			iterations += 1
 			if store_total_to_be_read > total_to_be_read or iterations >= 2:
@@ -157,23 +160,47 @@ def recv_data_from_nodes(dist_map):
 def get_global_map():
 	return global_map;
 
+def crawl_bfs(crawl_urls, depth, count):
+	queue = []
+	queue = copy.copy(crawl_urls);
+	return_res = []
+	url_and_depth_result = {}
+	while len(queue) and len(url_and_depth_result) < count:
+		print 'res', len(url_and_depth_result), count;
+		url_and_depth = queue.pop(0)
+		print 'crawling...', url_and_depth[0]
+		if url_and_depth[0] not in url_and_depth_result:
+			url_and_depth_result[url_and_depth[0]] = url_and_depth[1]
+		child_urls_and_depths = get_links(url_and_depth[0], url_and_depth[1], 2*(count - len(url_and_depth_result)))
+		print 'got', len(child_urls_and_depths);
+		for each in child_urls_and_depths:
+			if len(url_and_depth_result) >= count:
+				break;
+			if each[0] not in url_and_depth_result:
+				queue.append(each);
+				url_and_depth_result[each[0]] = each[1]
+	for each in url_and_depth_result:
+		return_res.append([each, url_and_depth_result[each]])
+	print return_res
+	return return_res;
 # This is the function that needs to be called for a given input URL
 # Return value - None
-def start_processing(url):
+def start_processing(crawl_urls, no_crawl_urls, count):
+	#crawl_urls and no crawl_urls example: [[url1, 0], [url2, 0]]
+	count = int(count);
 	init_master()
 	remaining_links = []
 	global global_node_sockets
 	global global_map
-	if type(url) == str:
-		urls_list = get_links(url)
-	else:
-		urls_list = url
-	#time.sleep(5); //For testing
+	urls_list = []
+
+	urls_list = crawl_bfs(crawl_urls, 0, count);
+	urls_list = urls_list + no_crawl_urls
 	print "links count =", len(urls_list)
 	distribution_map = send_links(global_node_sockets, urls_list)
 
 	print distribution_map
-	recv_data_from_nodes(distribution_map);
+	recv_data_from_nodes(distribution_map, count);
 	print global_map
 	print len(global_map)
 	print distribution_map
@@ -237,7 +264,7 @@ def init_master():
 #A non zero return value indicates unsuccessful run
 #Return value - Int
 def main():
-	start_processing(sys.argv[1])
+	start_processing([[sys.argv[1], 0]], [], int(sys.argv[2]))
 	return 0
 
 
