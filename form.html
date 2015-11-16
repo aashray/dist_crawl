@@ -1,0 +1,75 @@
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>
+function validate_maxnum(maxnum) {
+	return $.isNumeric(maxnum) && (maxnum > 0);
+}
+
+function getRemaining(urls) {
+
+	if (urls == "") {
+		document.getElementById("more_msg").style.visibility = "hidden";
+		return
+	}
+	urls = encodeURIComponent(urls);
+	document.getElementById("more_msg").style.visibility = "visible";
+	var xhttp2 = new XMLHttpRequest();
+	xhttp2.onreadystatechange = function() {
+		if (xhttp2.status == 200 && xhttp2.readyState == 4) {
+			$('#results_table').append(xhttp2.responseText);
+			document.getElementById("more_msg").style.visibility = "hidden";
+			document.getElementById("dayum").innerHTML = "";
+			
+		}
+	}
+	xhttp2.open("POST", "./form.py/do_more_stuff?links_str="+urls, true);
+	xhttp2.send();
+}
+
+function mySubmit() {
+	document.getElementById("results").innerHTML = "";
+	if (document.getElementById("dayum"))
+		document.getElementById("dayum").innerHTML = "";
+
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+		if (xhttp.status == 200 && xhttp.readyState == 4) {
+			document.getElementById("results").innerHTML = xhttp.responseText;
+
+			getRemaining(document.getElementById("dayum").innerHTML);
+		}
+	}
+	var url = document.getElementById("url").value;
+	var maxnum = document.getElementById("maxnum").value;
+	if (!validate_maxnum(maxnum)) {
+		alert("Invalid parameters");
+	}
+	xhttp.open("POST", "./form.py/do_stuff?link="+url+"&number="+maxnum, true);
+	xhttp.send();
+	document.getElementById("more_msg").innerHTML = "Waiting for results..."
+	document.getElementById("more_msg").style.visibility = "visible";
+}
+</script>
+</head>
+
+<body>
+<center>
+<br>
+<br>
+<b> Distributed Crawler </b>
+<br>
+<br>
+<table>
+<tr><td> URL </td> <td>No. of URLs</td><tr>
+<tr><td><input type="text" id="url" name="link" size="50%"></td> <td><input type="text" id="maxnum" name="number" size="10%"></td></tr>
+</table>
+<br>
+<button type="button" onclick="mySubmit()">Submit </button>
+<br>
+<p id="more_msg" style="visibility:hidden"></p>
+<p id="results"> </p>
+
+</center>
+</body>
+</html>
