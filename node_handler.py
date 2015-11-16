@@ -254,7 +254,7 @@ def thread_handler(client_socket):
 	while True:
 
 		[links_list, start_index] = read_links(client_socket);
-		if start_index == -1:
+		if start_index == -1 or len(links_list) == 0:
 			break;
 		links_result = {}
 		print 'Got a new request. Processing...'

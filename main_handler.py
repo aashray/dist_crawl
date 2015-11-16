@@ -65,32 +65,42 @@ def send_links(active_sockets, links_lst):
 		return {}
 	print "no sockets", no_sockets;
 	no_links_per_node = int(len(links_lst)/no_sockets)
+	if (len(links_lst) % no_sockets):
+		no_links_per_node += 1
 	distribution_map = {}
 	i = 0
 	end = 0;
-	while end < len(links_lst) - 1:
+	start = 0;
+	while end < len(links_lst):
 		for node_sock in active_sockets:
-			end = min((i + 1) * no_links_per_node, len(links_lst) - 1)#if i < no_sockets -1 else len(links_lst) #DAFUQ does this mean? TODO
-			node_links = links_lst[i * no_links_per_node:end]
+
+			#end = min((i + 1) * no_links_per_node, len(links_lst))#if i < no_sockets -1 else len(links_lst) #DAFUQ does this mean? TODO
+			end = min(start + no_links_per_node, len(links_lst))
+			print start, end
+			node_links = links_lst[start:end]
 
 			links_str = pickle.dumps(node_links)
 			length = len(links_str)
 
 			length_str_10 = "0"*(10 - len(str(length))) + str(length)
-			start_index_str_10 = "0"*(10 - len(str(i * no_links_per_node))) + str(i * no_links_per_node)
+			start_index_str_10 = "0"*(10 - len(str(start))) + str(start)
 			try:
 				node_sock.send(length_str_10);
 				node_sock.send(start_index_str_10);
 				node_sock.send(links_str);
 
 				if node_sock in distribution_map:
-					distribution_map[node_sock].append([i * no_links_per_node, end]);
+					distribution_map[node_sock].append([start, end]);
 				else:
-					distribution_map[node_sock] = [[i * no_links_per_node, end]];
+					distribution_map[node_sock] = [[start, end]];
 			except:
 				print "dayum, failed to send"
 				i -= 1
+				start -= no_links_per_node
 			i += 1
+			start += no_links_per_node
+			if end == len(links_lst):
+				break;
 	return distribution_map
 
 def recv_data_from_nodes(dist_map, count):

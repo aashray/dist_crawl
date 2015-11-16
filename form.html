@@ -1,5 +1,23 @@
 <html>
 <head>
+<style>
+#results_table {
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+#results_table td {
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+#results_table tr {
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+th, td {
+	padding: 5px;
+	text-align: left;
+}
+</style>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script>
 function validate_maxnum(maxnum) {
@@ -60,7 +78,7 @@ function mySubmit() {
 <b> Distributed Crawler </b>
 <br>
 <br>
-<table>
+<table border="0">
 <tr><td> URL </td> <td>No. of URLs</td><tr>
 <tr><td><input type="text" id="url" name="link" size="50%"></td> <td><input type="text" id="maxnum" name="number" size="10%"></td></tr>
 </table>

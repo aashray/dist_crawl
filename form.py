@@ -33,7 +33,7 @@ def do_more_stuff(req, links_str):
 	return ret_html
 
 def html_out_of_result(result):
-	html_table = "<table id='results_table' border='1' width='90%'>"
+	html_table = "<table id='results_table' width='90%'>"
 	actual_results = result[0]
 	need_to_process = result[1]
 	# [sts, xframe, httponly, securecookie, nonce]
