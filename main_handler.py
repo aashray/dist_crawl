@@ -48,6 +48,8 @@ def get_links(url, depth, atmost_count):
 				continue;
 		else:
 			continue;
+		if new_url[-4:] == '.pdf':
+			continue;
 		if new_url not in urls_list:
 			urls_list.append([new_url, depth + 1])
 		atmost_count -= 1;
