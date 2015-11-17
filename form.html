@@ -37,7 +37,8 @@ function getRemaining(urls) {
 		if (xhttp2.status == 200 && xhttp2.readyState == 4) {
 			$('#results_table').append(xhttp2.responseText);
 			document.getElementById("more_msg").style.visibility = "hidden";
-			document.getElementById("dayum").innerHTML = "";
+			if (document.getElementById("remaining_links"))
+				document.getElementById("remaining_links").innerHTML = "";
 			
 		}
 	}
@@ -47,15 +48,20 @@ function getRemaining(urls) {
 
 function mySubmit() {
 	document.getElementById("results").innerHTML = "";
-	if (document.getElementById("dayum"))
-		document.getElementById("dayum").innerHTML = "";
+	if (document.getElementById("remaining_links"))
+		document.getElementById("remaining_links").innerHTML = "";
 
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 		if (xhttp.status == 200 && xhttp.readyState == 4) {
+			if (xhttp.responseText == "") {
+				alert("Couldn't fetch any links/data. Try again!");
+				document.getElementById("more_msg").style.visibility = "hidden";
+				return;
+			}
 			document.getElementById("results").innerHTML = xhttp.responseText;
-
-			getRemaining(document.getElementById("dayum").innerHTML);
+			if (document.getElementById("remaining_links"))
+				getRemaining(document.getElementById("remaining_links").innerHTML);
 		}
 	}
 	var url = document.getElementById("url").value;

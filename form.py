@@ -6,12 +6,13 @@ directory = os.path.dirname(__file__)
 dist_crawl = apache.import_module('main_handler', path=[directory])
 #import dist_crawl.main_handler
 def do_more_stuff(req, links_str):
-	time.sleep(5);
 	links_with_depth = links_str.split("|||");
 	links = []
 	for each in links_with_depth:
-		each_link_and_depth = each.split("||")
-		links.append(each_link_and_depth);	
+		if each != "":
+			each_link_and_depth = each.split("||")
+			apache.log_error(str(each_link_and_depth))
+			links.append(each_link_and_depth);
 	apache.log_error(links_str);
 	#apache.log_error(str(len(links_str)));
 	#apache.log_error(str(links))
@@ -46,7 +47,7 @@ def html_out_of_result(result):
 		html_table = html_table + "</tr>"
 	html_table = html_table + "</table>"
 	
-	html_div = "<div id='dayum' style='visibility: hidden'>"
+	html_div = "<div id='remaining_links' style='visibility: hidden'>"
 	for x in need_to_process:
 		html_div = html_div + str(x[0]) + "||" + str(x[1]) + "|||"
 	html_div = html_div + "</div>"
@@ -55,6 +56,8 @@ def html_out_of_result(result):
 def do_stuff(req, link, number):
 	result = dist_crawl.start_processing([[link, 0]], [], int(number));
 	map_res = result[0]
+	if len(map_res) == 0:
+		return ""
 	result.pop(0);
 	map_to_arr = []
 	for each in map_res:
