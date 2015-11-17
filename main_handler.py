@@ -62,11 +62,9 @@ def setup_connection_node(ip, port):
 # Concatenates the strings in the list using \n as the delimiter.
 # Return value - A map of socket to [[start, end]] list as to what was send to each of the nodes
 def send_links(active_sockets, links_lst):
-	#print "links_str ",links_lst
 	no_sockets = len(active_sockets)
 	if no_sockets == 0:
 		return {}
-	print "no sockets", no_sockets;
 	no_links_per_node = int(len(links_lst)/no_sockets)
 	if (len(links_lst) % no_sockets):
 		no_links_per_node += 1
@@ -76,8 +74,6 @@ def send_links(active_sockets, links_lst):
 	start = 0;
 	while end < len(links_lst):
 		for node_sock in active_sockets:
-
-			#end = min((i + 1) * no_links_per_node, len(links_lst))#if i < no_sockets -1 else len(links_lst) #DAFUQ does this mean? TODO
 			end = min(start + no_links_per_node, len(links_lst))
 			print start, end
 			node_links = links_lst[start:end]
@@ -97,7 +93,6 @@ def send_links(active_sockets, links_lst):
 				else:
 					distribution_map[node_sock] = [[start, end]];
 			except:
-				print "dayum, failed to send"
 				i -= 1
 				start -= no_links_per_node
 			i += 1
@@ -179,13 +174,10 @@ def crawl_bfs(crawl_urls, depth, count):
 	return_res = []
 	url_and_depth_result = {}
 	while len(queue) and len(url_and_depth_result) < count:
-		print 'res', len(url_and_depth_result), count;
 		url_and_depth = queue.pop(0)
-		print 'crawling...', url_and_depth[0]
 		if url_and_depth[0] not in url_and_depth_result:
 			url_and_depth_result[url_and_depth[0]] = url_and_depth[1]
 		child_urls_and_depths = get_links(url_and_depth[0], url_and_depth[1], 2*(count - len(url_and_depth_result)))
-		print 'got', len(child_urls_and_depths);
 		for each in child_urls_and_depths:
 			if len(url_and_depth_result) >= count:
 				break;
@@ -194,8 +186,8 @@ def crawl_bfs(crawl_urls, depth, count):
 				url_and_depth_result[each[0]] = each[1]
 	for each in url_and_depth_result:
 		return_res.append([each, url_and_depth_result[each]])
-	print return_res
 	return return_res;
+
 # This is the function that needs to be called for a given input URL
 # Return value - None
 def start_processing(crawl_urls, no_crawl_urls, count):
@@ -205,24 +197,20 @@ def start_processing(crawl_urls, no_crawl_urls, count):
 	remaining_links = []
 	global global_node_sockets
 	global global_map
-	urls_list = []
+	if len(global_node_sockets) == 0:
+		return [{}, []]
 
+	urls_list = []
 	urls_list = crawl_bfs(crawl_urls, 0, count);
 	urls_list = urls_list + no_crawl_urls
-	print "links count =", len(urls_list)
 	if len(urls_list) == 0:
 		return [{}, []]
 	distribution_map = send_links(global_node_sockets, urls_list)
 
-	print distribution_map
 	recv_data_from_nodes(distribution_map, count);
-	print global_map
-	print len(global_map)
-	print distribution_map
 	for each in distribution_map:
 		for indexes in distribution_map[each]:
 			remaining_links = remaining_links + urls_list[indexes[0]:indexes[1]]
-	print remaining_links
 	ret_map = copy.copy(global_map) 
 	global_map = {};
 	global_node_sockets = []
@@ -262,7 +250,6 @@ def setup_all_nodes(nodes_conf_file_path):
 			continue;
 		active_node_sockets.append(node_sock)
 
-	print "activ nodes :", len(active_node_sockets)
 	if len(active_node_sockets) == 0:
 		return []
 
