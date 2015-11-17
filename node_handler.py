@@ -77,7 +77,7 @@ def get_security_properties(link):
     xframe = "Not Found"
     csp = False
     redirect_max = 3
-    fail_result = [False, False, False, False, False, False]
+    fail_result = []
 
     while (redirect_max):	
         url_parsed = urlparse.urlparse(link)
@@ -264,7 +264,10 @@ def thread_handler(client_socket):
 			if link == "":
 				continue
 			if link not in links_result:
-				links_result[link] = get_security_properties(link) + [depth]
+				sec_prop = get_security_properties(link)
+				if len(sec_prop) == 0:
+					continue;
+				links_result[link] = sec_prop + [depth]
 		print "processed ",len(links_list), " links"
 		pickle_result = pickle.dumps(links_result)
 		send_results_to_master(client_socket, str(pickle_result), start_index)

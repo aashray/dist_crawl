@@ -26,7 +26,10 @@ def get_links(url, depth, atmost_count):
 	url = urldfg[0]
 	urls_list = []
 	myopener = MyOpener()
-	page = myopener.open(url)
+	try:
+		page = myopener.open(url)
+	except:
+		return []
  
 	text = page.read()
 	page.close()
@@ -207,6 +210,8 @@ def start_processing(crawl_urls, no_crawl_urls, count):
 	urls_list = crawl_bfs(crawl_urls, 0, count);
 	urls_list = urls_list + no_crawl_urls
 	print "links count =", len(urls_list)
+	if len(urls_list) == 0:
+		return [{}, []]
 	distribution_map = send_links(global_node_sockets, urls_list)
 
 	print distribution_map
