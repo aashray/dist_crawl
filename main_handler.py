@@ -33,13 +33,21 @@ def get_links(url, depth, atmost_count):
  
 	text = page.read()
 	page.close()
-
+	url_parsed = urlparse.urlparse(url)
+	domain_name_url_arr = url_parsed.netloc.split(".")
 	soup = BeautifulSoup(text, "html.parser")
  	for tag in soup.findAll('a', href=True):
 		if atmost_count == 0:
 			break;
 		tag['href'] = urlparse.urljoin(url, tag['href'])
 		new_url = urlparse.urldefrag(tag['href'])[0]
+		new_url_parsed = urlparse.urlparse(new_url)
+		domain_name_new_url_arr = new_url_parsed.netloc.split('.');
+		if len(domain_name_url_arr) >= 2 and len(domain_name_new_url_arr) >= 2:
+			if domain_name_url_arr[-1] != domain_name_new_url_arr[-1] or domain_name_url_arr[-2] != domain_name_new_url_arr[-2]:
+				continue;
+		else:
+			continue;
 		if new_url not in urls_list:
 			urls_list.append([new_url, depth + 1])
 		atmost_count -= 1;
