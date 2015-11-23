@@ -1,9 +1,0 @@
-1. Start 3 node instances in 3 terminals
-
-	python node-handler.py
-	python node-handler.py 21414
-	python node-handler.py 21415
-
-2. Start server on port 22000 on another terminal
-	
-	python main-handler.py http://www.google.com
